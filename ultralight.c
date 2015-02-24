@@ -7,8 +7,8 @@
 #define array_size(x) (sizeof(x) / sizeof(x[0]))
 
 static const nfc_modulation MIFARE_MODULATION = {
-  .nmt = NMT_ISO14443A,
-  .nbr = NBR_106
+	.nmt = NMT_ISO14443A,
+	.nbr = NBR_106
 };
 
 typedef struct {
@@ -104,15 +104,26 @@ ul_result transceive_extended(ul_device * dev, void * req, size_t reqlen, void *
 	ul_result ret;
 
 	ret = set_easy_framing(dev, false);
-
-	if (ret == UL_OK) {
-		if (nfc_initiator_transceive_bytes(dev->nfc, req, reqlen, resp, resplen, -1) < 0) {
-			nfc_perror(dev->nfc, "nfc_initiator_transceive_bytes");
-			ret = UL_ERROR;
-		}
+	if (ret) {
+		return ret;
 	}
 
-	return ret;
+	int code = nfc_initiator_transceive_bytes(dev->nfc, req, reqlen, resp, resplen, -1);
+	if (code < 0) {
+		if (code == NFC_ERFTRANS) {
+			ret = ul_select(dev);
+			if (ret) {
+				return ret;
+			}
+
+			return UL_UNSUPPORTED;
+		}
+
+		nfc_perror(dev->nfc, "nfc_initiator_transceive_bytes");
+		ret = UL_ERROR;
+	}
+
+	return UL_OK;
 }
 
 ul_result ul_read_signature(ul_device * dev, uint8_t * signature) {
@@ -134,11 +145,6 @@ ul_result identify(ul_device * dev) {
 	ul_result ret = transceive_extended(dev, &req, sizeof(req), &resp, sizeof(resp));
 	if (ret) {
 		if (ret == UL_UNSUPPORTED) {
-			ret = ul_select(dev);
-			if (ret) {
-				return ret;
-			}
-
 			dev->type = &PLAIN_ULTRALIGHT;
 			return UL_OK;
 		}
