@@ -3,9 +3,9 @@
 #include "common.h"
 #include "ultralight.h"
 
-int execute(ul_device * dev) {
-	uint32_t buffer[UL_RDPAGS];
-	unsigned int page, i;
+ul_result execute(ul_device * dev) {
+	ul_page buffer[UL_RDPAGS];
+	unsigned int page, i, j;
 	ul_result ret;
 
 	for (page = 0; page < dev->type->pages; page += UL_RDPAGS) {
@@ -15,18 +15,17 @@ int execute(ul_device * dev) {
 			return ret;
 		}
 
-		fprintf(stdout, "[%02X]", page);
-		for (i = 0; i < UL_RDPAGS && page + i < dev->type->pages; i++) {
-			if (i + page >= dev->type->pages - dev->type->password_pages) {
-				fprintf(stdout, " ????????");
-			} else {
-				fprintf(stdout, " %08X", buffer[i]);
+		for (i = 0; i < UL_RDPAGS && page + i < dev->type->pages - dev->type->password_pages; i++) {
+			for (j = 0; j < UL_PAGSIZE; j++) {
+				if (fputc(buffer[i][j], stdout) == EOF) {
+					fprintf(stderr, "* Unexpected end of output stream *\n");
+					return UL_ERROR;
+				}
 			}
 		}
-		fprintf(stdout, "\n");
 	}
 
-	return 0;
+	return UL_OK;
 }
 
 int main() {

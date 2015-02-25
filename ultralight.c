@@ -81,7 +81,7 @@ ul_result transceive_data(ul_device * dev, void * req, size_t reqlen, void * res
 	return ret;
 }
 
-ul_result ul_write(ul_device * dev, unsigned int page, uint32_t * data) {
+ul_result ul_write(ul_device * dev, unsigned int page, ul_page * data) {
 	write_request req;
 
 	req.command = CMD_WRITE;
@@ -91,7 +91,7 @@ ul_result ul_write(ul_device * dev, unsigned int page, uint32_t * data) {
 	return transceive_data(dev, &req, sizeof(req), NULL, 0);
 }
 
-ul_result ul_read(ul_device * dev, unsigned int page, uint32_t * data) {
+ul_result ul_read(ul_device * dev, unsigned int page, ul_page * data) {
 	read_request req;
 
 	req.command = CMD_READ;

@@ -18,7 +18,10 @@ typedef enum {
 #define UL_WRPAGS 1
 #define UL_RDPAGS 4
 
+#define UL_PAGSIZE 4
 #define UL_SIGSIZE 32
+
+typedef uint8_t ul_page[UL_PAGSIZE];
 
 typedef struct {
 	const char * name;
@@ -35,16 +38,10 @@ typedef struct {
 	uint32_t key;
 } ul_device;
 
-typedef struct {
-	ul_type * product;
-	uint32_t * contents;
-	uint32_t password;
-} ul_dump;
-
 ul_result ul_detect(nfc_device * nfcdev, ul_device * dev);
 ul_result ul_select(ul_device * dev);
-ul_result ul_write(ul_device * dev, unsigned int page, uint32_t * data);
-ul_result ul_read(ul_device * dev, unsigned int page, uint32_t * data);
+ul_result ul_write(ul_device * dev, unsigned int page, ul_page * data);
+ul_result ul_read(ul_device * dev, unsigned int page, ul_page * data);
 ul_result ul_read_signature(ul_device * dev, uint8_t * data);
 
 #endif

@@ -24,7 +24,7 @@ typedef struct {
 typedef struct {
 	uint8_t command;
 	uint8_t address;
-	uint32_t data[UL_WRPAGS];
+	ul_page data[UL_WRPAGS];
 } write_request;
 
 typedef struct {
