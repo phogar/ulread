@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "ultralight.h"
 
-typedef enum {
+enum {
 	CMD_PWD_AUTH	= 0x1B,
 	CMD_READ		= 0x30,
 	CMD_READ_CNT	= 0x39,
@@ -14,23 +14,23 @@ typedef enum {
 	CMD_GET_VERSION	= 0x60,
 	CMD_COMP_WRITE	= 0xA0,
 	CMD_WRITE		= 0xA2,
-} ul_cmd;
+};
 
 #pragma pack(1)
 
 typedef struct {
-	ul_cmd command;
+	uint8_t command;
 	uint8_t address;
 } read_request;
 
 typedef struct {
-	ul_cmd command;
+	uint8_t command;
 	uint8_t address;
 	ul_page data[UL_WRPAGS];
 } write_request;
 
 typedef struct {
-	ul_cmd command;
+	uint8_t command;
 	uint8_t dummy[0];
 } version_request;
 
@@ -46,7 +46,7 @@ typedef struct {
 } version_response;
 
 typedef struct {
-	ul_cmd command;
+	uint8_t command;
 	uint8_t address;
 } signature_request;
 
