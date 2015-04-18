@@ -3,4 +3,5 @@
 *.o
 *.stackdump
 ulread
+ulwrite
 *~

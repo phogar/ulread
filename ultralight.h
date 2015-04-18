@@ -21,8 +21,10 @@ typedef enum {
 
 #define UL_PAGSIZE 4
 #define UL_SIGSIZE 32
+#define UL_PACKSIZE 2
 
 typedef uint8_t ul_page[UL_PAGSIZE];
+typedef uint8_t ul_passack[UL_PACKSIZE];
 
 typedef struct {
 	const char * name;
@@ -42,6 +44,6 @@ ul_result ul_select(ul_device * dev);
 ul_result ul_write(ul_device * dev, unsigned int page, const ul_page * data);
 ul_result ul_read(ul_device * dev, unsigned int page, ul_page * data);
 ul_result ul_read_signature(ul_device * dev, uint8_t * data);
-ul_result ul_authenticate(ul_device * dev, const ul_page key);
+ul_result ul_authenticate(ul_device * dev, const ul_page key, ul_passack pack);
 
 #endif

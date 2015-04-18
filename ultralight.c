@@ -134,13 +134,19 @@ ul_result ul_read_signature(ul_device * dev, uint8_t * signature) {
 	return transceive_extended(dev, &req, sizeof(req), signature, UL_SIGSIZE);
 }
 
-ul_result ul_authenticate(ul_device * dev, const ul_page key) {
+ul_result ul_authenticate(ul_device * dev, const ul_page key, ul_passack pack) {
 	auth_request req;
 
 	req.command = CMD_PWD_AUTH;
 	memcpy(req.key, key, UL_PAGSIZE);
 
-	return transceive_extended(dev, &req, sizeof(req), NULL, 0);
+	ul_result ret = transceive_extended(dev, &req, sizeof(req), pack, UL_PACKSIZE);
+	if (ret) {
+		ul_select(dev);
+		fprintf(stderr, "LOGER: %i\n", ret);
+	}
+	if (pack != NULL) { fprintf(stderr, "Pack: %02X %02X", pack[0], pack[1]); };
+	return ret;
 }
 
 ul_result identify(ul_device * dev) {

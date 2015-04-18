@@ -11,13 +11,14 @@ ul_result execute(ul_device * dev, unsigned int page, unsigned int count, bool l
 
 	page = min(dev->type->pages, page);
 	count = min(dev->type->pages - page, count);
-	fprintf(stderr, "Writing %u pages starting at page %02X (lenient: %s)\n", count, page, lenient ? "true" : "false");
+	fprintf(stderr, "Writing %u pages starting at page 0x%02X (lenient: %s)\n", count, page, lenient ? "true" : "false");
 
 	bool auth = false;
 	while (count > 0) {
 		if (key != NULL && !auth) {
-			ul_select(dev);
-			ret = ul_authenticate(dev, key);
+			ul_passack pack;
+			ret = ul_authenticate(dev, key, pack);
+			fprintf(stderr, "Pack: %02X %02X", pack[0], pack[1]);
 			if (ret) {
 				fprintf(stderr, "* Error authenticating with given key: %02X %02X %02X %02X (err %i) *\n", key[0], key[1], key[2], key[3], ret);
 				return ret;
