@@ -31,7 +31,6 @@ ul_result execute(ul_device * dev, unsigned int page, unsigned int count, bool l
 		}
 
 		ret = ul_write(dev, page, buffer);
-		ret = ul_write(dev, page, buffer);
 		if (ret) {
 			fprintf(stderr, "* Error writing page 0x%02X *\n", page);
 			if (!lenient) {
@@ -47,7 +46,7 @@ ul_result execute(ul_device * dev, unsigned int page, unsigned int count, bool l
 	return UL_OK;
 }
 
-int main(int argv, char ** argc) {
+int main(int argc, char ** argv) {
 	nfc_context * ctx;
 	nfc_device * nfcdev;
 	ul_device uldev;
@@ -60,7 +59,7 @@ int main(int argv, char ** argc) {
 	bool lenient = false;
 
 	while (true) {
-		int c = getopt(argv, argc, "s:c:lk:");
+		int c = getopt(argc, argv, "s:c:lk:");
 		if (c == -1) {
 			break;
 		}
@@ -84,7 +83,6 @@ int main(int argv, char ** argc) {
 				break;
 		}
 	}
-	fprintf(stderr, "INIT\n");
 
 	ret = initialize(&ctx, &nfcdev, &uldev);
 	if (ret) {
