@@ -1,6 +1,6 @@
 
-#ifndef HAVE_TYPE_H
-#define HAVE_TYPE_H
+#ifndef HAVE_ULTRALIGHT_H
+#define HAVE_ULTRALIGHT_H
 
 #include <stdbool.h>
 #include <nfc/nfc.h>
@@ -12,7 +12,8 @@ typedef enum {
 	UL_NOTAG = 3,
 	UL_NOTULTRALIGHT = 4,
 	UL_NEEDSPASS = 5,
-	UL_WRONGPASS = 6
+	UL_WRONGPASS = 6,
+	UL_PAGENX = 7
 } ul_result;
 
 #define UL_WRPAGS 1
@@ -26,7 +27,7 @@ typedef uint8_t ul_page[UL_PAGSIZE];
 typedef struct {
 	const char * name;
 	unsigned int pages;
-	unsigned int password_pages;
+	unsigned int write_only_pages;
 } ul_type;
 
 typedef struct {
@@ -34,14 +35,13 @@ typedef struct {
 	ul_type const * type;
 	size_t id_size;
 	uint8_t id[16];
-	bool has_key;
-	uint32_t key;
 } ul_device;
 
 ul_result ul_detect(nfc_device * nfcdev, ul_device * dev);
 ul_result ul_select(ul_device * dev);
-ul_result ul_write(ul_device * dev, unsigned int page, ul_page * data);
+ul_result ul_write(ul_device * dev, unsigned int page, const ul_page * data);
 ul_result ul_read(ul_device * dev, unsigned int page, ul_page * data);
 ul_result ul_read_signature(ul_device * dev, uint8_t * data);
+ul_result ul_authenticate(ul_device * dev, const ul_page key);
 
 #endif

@@ -61,7 +61,7 @@ ul_result initialize(nfc_context ** ctx, nfc_device ** nfcdev, ul_device * uldev
 	}
 	fprintf(stderr, "\n");
 
-	fprintf(stderr, " - Model: %s\n - %d pages (%d bytes)\n - %d write-only password pages (%d bytes)\n", uldev->type->name, uldev->type->pages, 4 * uldev->type->pages, uldev->type->password_pages, 4 * uldev->type->password_pages);
+	fprintf(stderr, " - Model: %s\n - %d pages (%d bytes)\n - %d write-only password pages (%d bytes)\n", uldev->type->name, uldev->type->pages, 4 * uldev->type->pages, uldev->type->write_only_pages, UL_PAGSIZE * uldev->type->write_only_pages);
 	if (uldev->type->pages == 0) {
 		fprintf(stderr, "* Unsupported model *\n");
 		return UL_UNSUPPORTED;
@@ -74,4 +74,38 @@ void finalize(nfc_context * ctx, nfc_device * nfcdev) {
 	nfc_close(nfcdev);
 	nfc_exit(ctx);
 }
+
+int hexchar2bin(char c) {
+	if (c >= '0' && c <= '9') {
+		return c - '0';
+	}
+	if (c >= 'A' && c <= 'F') {
+		return c - 'A' + 0xA;
+	}
+	if (c >= 'a' && c <= 'f') {
+		return c - 'a' + 0xA;
+	}
+	return -1;
+}
+
+size_t hex2bin(const char * string, uint8_t * bytes, size_t size) {
+	int hi, lo;
+	size_t read;
+
+	for (read = 0; read < size; read++) {
+		hi = hexchar2bin(string[read * 2 + 0]);
+		if (hi < 0) {
+			break;
+		}
+
+		lo = hexchar2bin(string[read * 2 + 1]);
+		if (lo < 0) {
+			break;
+		}
+
+		bytes[read] = hi << 4 | lo;
+	}
+
+	return read;
+}	
 

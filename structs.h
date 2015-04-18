@@ -7,13 +7,13 @@
 
 enum {
 	CMD_PWD_AUTH	= 0x1B,
-	CMD_READ		= 0x30,
+	CMD_READ	= 0x30,
 	CMD_READ_CNT	= 0x39,
 	CMD_FAST_READ	= 0x3A,
 	CMD_READ_SIG	= 0x3C,
 	CMD_GET_VERSION	= 0x60,
 	CMD_COMP_WRITE	= 0xA0,
-	CMD_WRITE		= 0xA2,
+	CMD_WRITE	= 0xA2,
 };
 
 #pragma pack(1)
@@ -31,8 +31,12 @@ typedef struct {
 
 typedef struct {
 	uint8_t command;
-	uint8_t dummy[0];
 } version_request;
+
+typedef struct {
+	uint8_t command;
+	ul_page key;
+} auth_request;
 
 typedef struct {
 	uint8_t header;

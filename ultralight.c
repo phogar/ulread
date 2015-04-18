@@ -41,7 +41,6 @@ ul_result ul_detect(nfc_device * nfcdev, ul_device * dev) {
 	size_t idSize = target.nti.nai.szUidLen;
 	memcpy(dev->id, &target.nti.nai.abtUid, idSize);
 	dev->id_size = idSize;
-	dev->has_key = false;
 	dev->nfc = nfcdev;
 
 	return identify(dev);
@@ -66,7 +65,7 @@ ul_result set_easy_framing(ul_device * dev, bool enable) {
 	return UL_OK;
 }
 
-ul_result transceive_data(ul_device * dev, void * req, size_t reqlen, void * resp, size_t resplen) {
+ul_result transceive_data(ul_device * dev, const void * req, size_t reqlen, void * resp, size_t resplen) {
 	ul_result ret;
 
 	ret = set_easy_framing(dev, true);
@@ -81,12 +80,12 @@ ul_result transceive_data(ul_device * dev, void * req, size_t reqlen, void * res
 	return ret;
 }
 
-ul_result ul_write(ul_device * dev, unsigned int page, ul_page * data) {
+ul_result ul_write(ul_device * dev, unsigned int page, const ul_page * data) {
 	write_request req;
 
 	req.command = CMD_WRITE;
 	req.address = page;
-	memcpy(req.data, data, 4 * UL_WRPAGS);
+	memcpy(req.data, data, UL_PAGSIZE * UL_WRPAGS);
 
 	return transceive_data(dev, &req, sizeof(req), NULL, 0);
 }
@@ -97,10 +96,10 @@ ul_result ul_read(ul_device * dev, unsigned int page, ul_page * data) {
 	req.command = CMD_READ;
 	req.address = page;
 
-	return transceive_data(dev, &req, sizeof(read_request), data, 4 * UL_RDPAGS);
+	return transceive_data(dev, &req, sizeof(req), data, UL_PAGSIZE * UL_RDPAGS);
 }
 
-ul_result transceive_extended(ul_device * dev, void * req, size_t reqlen, void * resp, size_t resplen) {
+ul_result transceive_extended(ul_device * dev, const void * req, size_t reqlen, void * resp, size_t resplen) {
 	ul_result ret;
 
 	ret = set_easy_framing(dev, false);
@@ -132,7 +131,16 @@ ul_result ul_read_signature(ul_device * dev, uint8_t * signature) {
 	req.command = CMD_READ_SIG;
 	req.address = 0;
 
-	return transceive_extended(dev, &req, sizeof(read_request), signature, UL_SIGSIZE);
+	return transceive_extended(dev, &req, sizeof(req), signature, UL_SIGSIZE);
+}
+
+ul_result ul_authenticate(ul_device * dev, const ul_page key) {
+	auth_request req;
+
+	req.command = CMD_PWD_AUTH;
+	memcpy(req.key, key, UL_PAGSIZE);
+
+	return transceive_extended(dev, &req, sizeof(req), NULL, 0);
 }
 
 ul_result identify(ul_device * dev) {
