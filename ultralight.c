@@ -40,8 +40,9 @@ ul_result ul_detect(nfc_device * nfcdev, ul_device * dev) {
 
 	size_t idSize = target.nti.nai.szUidLen;
 	memcpy(dev->id, &target.nti.nai.abtUid, idSize);
-	dev->id_size = idSize;
+	dev->idSize = idSize;
 	dev->nfc = nfcdev;
+	dev->hasKey = false;
 
 	return identify(dev);
 }
@@ -49,7 +50,7 @@ ul_result ul_detect(nfc_device * nfcdev, ul_device * dev) {
 ul_result ul_select(ul_device * dev) {
 	nfc_target target;
 
-	if (nfc_initiator_select_passive_target(dev->nfc, MIFARE_MODULATION, dev->id, dev->id_size, &target) <= 0) {
+	if (nfc_initiator_select_passive_target(dev->nfc, MIFARE_MODULATION, dev->id, dev->idSize, &target) <= 0) {
 		return UL_NOTAG;
 	}
 
@@ -143,10 +144,16 @@ ul_result ul_authenticate(ul_device * dev, const ul_page key, ul_passack pack) {
 	ul_result ret = transceive_extended(dev, &req, sizeof(req), pack, UL_PACKSIZE);
 	if (ret) {
 		ul_select(dev);
-		fprintf(stderr, "LOGER: %i\n", ret);
 	}
-	if (pack != NULL) { fprintf(stderr, "Pack: %02X %02X", pack[0], pack[1]); };
+
 	return ret;
+}
+
+ul_result ul_set_key(ul_device * dev, const ul_page key) {
+	dev->hasKey = true;
+	dev->key = true;
+
+	return UL_OK;
 }
 
 ul_result identify(ul_device * dev) {

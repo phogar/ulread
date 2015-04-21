@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <getopt.h>
 #include "common.h"
 
 bool open_default_device(nfc_context ** retCtx, nfc_device ** retDev) {
@@ -40,15 +41,16 @@ fail0:
 	return false;
 }
 
-ul_result initialize(nfc_context ** ctx, nfc_device ** nfcdev, ul_device * uldev) {
-	if (!open_default_device(ctx, nfcdev)) {
+ul_result initialize(int argc, char ** argv, app_ctx * ctx) {
+	if (!open_default_device(&ctx->nfcctx, &ctx->nfcdev)) {
 		return UL_ERROR;
 	}
 
+	ul_page key;
 	ul_result ret;
 	unsigned int i;
 
-	ret = ul_detect(*nfcdev, uldev);
+	ret = ul_detect(ctx->nfcdev, &ctx->uldev);
 	if (ret) {
 		fprintf(stderr, "* Unable to detect Ultralight tag *\n");
 		return ret;
@@ -56,23 +58,52 @@ ul_result initialize(nfc_context ** ctx, nfc_device ** nfcdev, ul_device * uldev
 
 	fprintf(stderr, "Detected Ultralight\n");
 	fprintf(stderr, " - UID:");
-	for (i = 0; i < uldev->id_size; i++) {
-		fprintf(stderr, " %02X", uldev->id[i]);
+	for (i = 0; i < ctx->uldev.idSize; i++) {
+		fprintf(stderr, " %02X", ctx->uldev.id[i]);
 	}
 	fprintf(stderr, "\n");
 
-	fprintf(stderr, " - Model: %s\n - %d pages (%d bytes)\n - %d write-only password pages (%d bytes)\n", uldev->type->name, uldev->type->pages, 4 * uldev->type->pages, uldev->type->write_only_pages, UL_PAGSIZE * uldev->type->write_only_pages);
-	if (uldev->type->pages == 0) {
+	fprintf(stderr, " - Model: %s\n - %d pages (%d bytes)\n - %d write-only password pages (%d bytes)\n", ctx->uldev.type->name, ctx->uldev.type->pages, ctx->uldev.type->pages * UL_PAGSIZE, ctx->uldev.type->passwordPages, ctx->uldev.type->passwordPages * UL_PAGSIZE);
+	if (ctx->uldev.type->pages == 0) {
 		fprintf(stderr, "* Unsupported model *\n");
 		return UL_UNSUPPORTED;
+	}
+
+	ctx->startPage = 0;
+	ctx->pageCount = ~0;
+	ctx->lenient = false;
+	while (true) {
+		int c = getopt(argc, argv, "s:c:lk:");
+		if (c == -1) {
+			break;
+		}
+
+		switch (c) {
+			case 's':
+				ctx->startPage = strtoul(optarg, NULL, 0);
+				break;
+
+			case 'c':
+				ctx->pageCount = strtoul(optarg, NULL, 0);
+				break;
+
+			case 'l':
+				ctx->lenient = true;
+				break;
+
+			case 'k':
+				hex2bin(optarg, key, UL_PAGSIZE);
+				ul_set_key(&ctx->uldev, key);
+				break;
+		}
 	}
 
 	return UL_OK;
 }
 
-void finalize(nfc_context * ctx, nfc_device * nfcdev) {
-	nfc_close(nfcdev);
-	nfc_exit(ctx);
+void finalize(app_ctx * ctx) {
+	nfc_close(ctx->nfcdev);
+	nfc_exit(ctx->nfcctx);
 }
 
 int hexchar2bin(char c) {
