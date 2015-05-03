@@ -38,7 +38,8 @@ typedef struct {
 	size_t idSize;
 	uint8_t id[16];
 	bool hasKey;
-	uint32_t key;
+	ul_page key;
+	bool authed;
 } ul_device;
 
 ul_result ul_detect(nfc_device * nfcdev, ul_device * dev);

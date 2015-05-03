@@ -43,6 +43,7 @@ ul_result ul_detect(nfc_device * nfcdev, ul_device * dev) {
 	dev->idSize = idSize;
 	dev->nfc = nfcdev;
 	dev->hasKey = false;
+	dev->authed = false;
 
 	return identify(dev);
 }
@@ -53,6 +54,8 @@ ul_result ul_select(ul_device * dev) {
 	if (nfc_initiator_select_passive_target(dev->nfc, MIFARE_MODULATION, dev->id, dev->idSize, &target) <= 0) {
 		return UL_NOTAG;
 	}
+
+	dev->authed = false;
 
 	return UL_OK;
 }
@@ -83,6 +86,14 @@ ul_result transceive_data(ul_device * dev, const void * req, size_t reqlen, void
 
 ul_result ul_write(ul_device * dev, unsigned int page, const ul_page * data) {
 	write_request req;
+	ul_result res;
+
+	if (dev->hasKey && !dev->authed) {
+		res = ul_authenticate(dev, dev->key, NULL);
+		if (res != UL_OK) {
+			return res;
+		}
+	}
 
 	req.command = CMD_WRITE;
 	req.address = page;
@@ -93,6 +104,14 @@ ul_result ul_write(ul_device * dev, unsigned int page, const ul_page * data) {
 
 ul_result ul_read(ul_device * dev, unsigned int page, ul_page * data) {
 	read_request req;
+	ul_result res;
+
+	if (dev->hasKey && !dev->authed) {
+		res = ul_authenticate(dev, dev->key, NULL);
+		if (res != UL_OK) {
+			return res;
+		}
+	}
 
 	req.command = CMD_READ;
 	req.address = page;
@@ -145,13 +164,19 @@ ul_result ul_authenticate(ul_device * dev, const ul_page key, ul_passack pack) {
 	if (ret) {
 		ul_select(dev);
 	}
+	dev->authed = (ret == UL_OK);
 
 	return ret;
 }
 
 ul_result ul_set_key(ul_device * dev, const ul_page key) {
+	if (dev->hasKey == true && memcmp(dev->key, key, UL_PAGSIZE) == 0) {
+		return UL_OK;
+	}
+
 	dev->hasKey = true;
-	dev->key = true;
+	memcpy(dev->key, key, UL_PAGSIZE);
+	dev->authed = false;
 
 	return UL_OK;
 }
