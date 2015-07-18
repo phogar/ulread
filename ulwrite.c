@@ -17,8 +17,8 @@ ul_result execute(app_ctx * ctx) {
 
 		ret = ul_write(&ctx->uldev, page, buffer);
 		if (ret) {
-			fprintf(stderr, "* Error writing page 0x%02X *\n", page);
-			if (!ctx->lenient) {
+			fprintf(stderr, "* Error writing page 0x%02X (%d) *\n", page, ret);
+			if (ctx->lenient == false || ret == UL_WRONGPASS) {
 				return ret;
 			}
 		}

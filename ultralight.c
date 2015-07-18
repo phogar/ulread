@@ -60,24 +60,20 @@ ul_result ul_select(ul_device * dev) {
 	return UL_OK;
 }
 
-ul_result set_easy_framing(ul_device * dev, bool enable) {
-	if (nfc_device_set_property_bool(dev->nfc, NP_EASY_FRAMING, enable) < 0) {
+ul_result transceive(ul_device * dev, const void * req, size_t reqlen, void * resp, size_t resplen, bool isData) {
+	if (nfc_device_set_property_bool(dev->nfc, NP_EASY_FRAMING, isData) < 0) {
 		nfc_perror(dev->nfc, "nfc_device_set_property_bool");
 		return UL_ERROR;
 	}
 
-	return UL_OK;
-}
-
-ul_result transceive_data(ul_device * dev, const void * req, size_t reqlen, void * resp, size_t resplen) {
-	ul_result ret;
-
-	ret = set_easy_framing(dev, true);
-
-	if (ret == UL_OK) {
-		if (nfc_initiator_transceive_bytes(dev->nfc, req, reqlen, resp, resplen, -1) < 0) {
+	ul_result ret = UL_OK;
+	int code = nfc_initiator_transceive_bytes(dev->nfc, req, reqlen, resp, resplen, -1);
+	if (code < 0) {
+		ret = ul_select(dev);
+		if (ret == UL_OK) {
+			ret = UL_UNSUPPORTED;
+		} else {
 			nfc_perror(dev->nfc, "nfc_initiator_transceive_bytes");
-			ret = UL_ERROR;
 		}
 	}
 
@@ -99,7 +95,11 @@ ul_result ul_write(ul_device * dev, unsigned int page, const ul_page * data) {
 	req.address = page;
 	memcpy(req.data, data, UL_PAGSIZE * UL_WRPAGS);
 
-	return transceive_data(dev, &req, sizeof(req), NULL, 0);
+	// TODO: Check why I need to send data twice so I get errors on failed writes
+	res = transceive(dev, &req, sizeof(req), NULL, 0, true);
+	res = transceive(dev, &req, sizeof(req), NULL, 0, true);
+
+	return res;
 }
 
 ul_result ul_read(ul_device * dev, unsigned int page, ul_page * data) {
@@ -116,33 +116,7 @@ ul_result ul_read(ul_device * dev, unsigned int page, ul_page * data) {
 	req.command = CMD_READ;
 	req.address = page;
 
-	return transceive_data(dev, &req, sizeof(req), data, UL_PAGSIZE * UL_RDPAGS);
-}
-
-ul_result transceive_extended(ul_device * dev, const void * req, size_t reqlen, void * resp, size_t resplen) {
-	ul_result ret;
-
-	ret = set_easy_framing(dev, false);
-	if (ret) {
-		return ret;
-	}
-
-	int code = nfc_initiator_transceive_bytes(dev->nfc, req, reqlen, resp, resplen, -1);
-	if (code < 0) {
-		if (code == NFC_ERFTRANS) {
-			ret = ul_select(dev);
-			if (ret) {
-				return ret;
-			}
-
-			return UL_UNSUPPORTED;
-		}
-
-		nfc_perror(dev->nfc, "nfc_initiator_transceive_bytes");
-		ret = UL_ERROR;
-	}
-
-	return UL_OK;
+	return transceive(dev, &req, sizeof(req), data, UL_PAGSIZE * UL_RDPAGS, true);
 }
 
 ul_result ul_read_signature(ul_device * dev, uint8_t * signature) {
@@ -151,7 +125,7 @@ ul_result ul_read_signature(ul_device * dev, uint8_t * signature) {
 	req.command = CMD_READ_SIG;
 	req.address = 0;
 
-	return transceive_extended(dev, &req, sizeof(req), signature, UL_SIGSIZE);
+	return transceive(dev, &req, sizeof(req), signature, UL_SIGSIZE, false);
 }
 
 ul_result ul_authenticate(ul_device * dev, const ul_page key, ul_passack pack) {
@@ -160,11 +134,10 @@ ul_result ul_authenticate(ul_device * dev, const ul_page key, ul_passack pack) {
 	req.command = CMD_PWD_AUTH;
 	memcpy(req.key, key, UL_PAGSIZE);
 
-	ul_result ret = transceive_extended(dev, &req, sizeof(req), pack, UL_PACKSIZE);
-	if (ret) {
-		ul_select(dev);
+	ul_result ret = transceive(dev, &req, sizeof(req), pack, UL_PACKSIZE, false);
+	if (ret == UL_OK) {
+		dev->authed = true;
 	}
-	dev->authed = (ret == UL_OK);
 
 	return ret;
 }
@@ -188,7 +161,7 @@ ul_result identify(ul_device * dev) {
 
 	req.command = CMD_GET_VERSION;
 
-	ul_result ret = transceive_extended(dev, &req, sizeof(req), &resp, sizeof(resp));
+	ul_result ret = transceive(dev, &req, sizeof(req), &resp, sizeof(resp), false);
 	if (ret) {
 		if (ret == UL_UNSUPPORTED) {
 			dev->type = &PLAIN_ULTRALIGHT;
